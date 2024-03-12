@@ -1,0 +1,8 @@
+streamlit
+pandas
+numpy
+plotly
+web3
+datetime
+json
+pyscopg2
