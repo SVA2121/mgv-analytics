@@ -1,5 +1,7 @@
 ## Setup
 
+Setup an .env file
+
 Run the following commands in order:
 
 python -m venv .env-analytics
