@@ -7,16 +7,16 @@ from dotenv import load_dotenv
 load_dotenv('.env')
 
 DB_NAME = os.environ.get("DB_NAME")
-USER = os.environ.get("USER")
-PSWD = os.environ.get("PSWD")
-HOST = os.environ.get("HOST")
-PORT = os.environ.get("PORT")
+DB_USER = os.environ.get("USER")
+DB_PSWD = os.environ.get("PSWD")
+DB_HOST = os.environ.get("HOST")
+DB_PORT = os.environ.get("PORT")
 
 def get_db_connection(db_name : str = DB_NAME,
-                      user : str = USER,
-                      password : str = PSWD,
-                      host : str = HOST,
-                      port : str = PORT):
+                      user : str = DB_USER,
+                      password : str = DB_PSWD,
+                      host : str = DB_HOST,
+                      port : str = DB_PORT):
     # Establish connection parameters
 
     db_url = f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
