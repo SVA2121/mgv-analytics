@@ -4,4 +4,4 @@ numpy
 plotly
 web3
 datetime
-pyscopg2
+psycopg2-binary
