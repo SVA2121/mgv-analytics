@@ -73,7 +73,7 @@ balances = get_balances()
 col1up.dataframe(balances)
 
 
-overall.markdown("## Volume Metrics")
+overall.markdown("## Research Volume Metrics")
 
 volume = execute_query_from_file('quote_volume_research.sql')
 volume.index = volume.creation_date
