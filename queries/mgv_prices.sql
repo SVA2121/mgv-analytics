@@ -25,12 +25,12 @@
           THEN ROUND((taker_gave / POW(10, in_token.decimals)) / (taker_got / POW(10, out_token.decimals)), 3)
        END AS punks40weth
 
-    FROM sgd76.order AS o
-    LEFT JOIN sgd76.market AS market
+    FROM sgd77.order AS o
+    LEFT JOIN sgd77.market AS market
         ON o.market = market.id
-    LEFT JOIN sgd76.token AS out_token
+    LEFT JOIN sgd77.token AS out_token
       ON market.outbound_tkn = out_token.id
-     LEFT JOIN sgd76.token AS in_token
+     LEFT JOIN sgd77.token AS in_token
       ON market.inbound_tkn = in_token.id
     WHERE NOT (taker_gave = 0 AND taker_got = 0)
     ORDER BY creation_date ASC

@@ -9,10 +9,10 @@ WITH volume AS (
           THEN taker_got / POW(10, tkn.decimals)
           ELSE taker_gave / POW(10, tkn.decimals)
       END AS quote_volume
-  FROM sgd76.order ord
-  LEFT JOIN sgd76.market mkt
+  FROM sgd77.order ord
+  LEFT JOIN sgd77.market mkt
       ON ord.market = mkt.id
-  LEFT JOIN sgd76.token tkn
+  LEFT JOIN sgd77.token tkn
       ON mkt.outbound_tkn = tkn.id
   WHERE TRUE
   	AND UPPER(mkt.block_range) IS NULL
