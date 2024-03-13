@@ -3,13 +3,13 @@ import pandas as pd
 import os
 import plotly.express as px
 import plotly.graph_objects as go
-from web3 import Web3 
+#from web3 import Web3 
 from datetime import datetime, timedelta
 import json
 
 from database_connection import execute_query_from_file
 
-blast =  Web3(Web3.HTTPProvider('https://rpc.blast.io'))
+#blast =  Web3(Web3.HTTPProvider('https://rpc.blast.io'))
 
 
 def get_balances() -> pd.DataFrame:
@@ -69,8 +69,8 @@ col1up.metric(label = "Research Account MtM", value=1000)
 col2up.metric(label = "Research Account MtM", value=1000)
 col1up.markdown("#### Balances")
 
-balances = get_balances()
-col1up.dataframe(balances)
+#balances = get_balances()
+#col1up.dataframe(balances)
 
 
 overall.markdown("## Research Volume Metrics")

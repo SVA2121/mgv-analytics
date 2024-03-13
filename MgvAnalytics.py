@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from web3 import Web3 
+#from web3 import Web3 
 from datetime import datetime, timedelta
 
 
@@ -12,13 +12,13 @@ from database_connection import execute_query_from_file, get_db_connection
 
 st.set_page_config(layout="wide")
 
-blast =  Web3(Web3.HTTPProvider('https://rpc.blast.io'))
+#blast =  Web3(Web3.HTTPProvider('https://rpc.blast.io'))
 # Get current time
 current_time = datetime.now()
 
-LATEST_BLOCK_NUMBER = blast.eth.get_block('latest').get('number')
+#LATEST_BLOCK_NUMBER = blast.eth.get_block('latest').get('number')
 # 2 blocks per second in blast --> 30 * 60 * 24 per day
-LAST_24H_BLOCK_NUMBER = LATEST_BLOCK_NUMBER - 30 * 60 * 24
+#LAST_24H_BLOCK_NUMBER = LATEST_BLOCK_NUMBER - 30 * 60 * 24
 
 
 overall, maker, taker = st.tabs(["Overall Analytics", "Maker Anlaytics", "Taker Analytics"])
