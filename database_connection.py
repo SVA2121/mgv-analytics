@@ -27,11 +27,10 @@ def get_db_connection(db_name : str = DB_NAME,
     try:
         conn = psycopg2.connect(conn_string)
         print("Connected successfully!")
+        return conn
     except psycopg2.OperationalError as e:
         print(f"Unable to connect!\n{e}")
 
-
-    return conn
 
 def execute_read_query(query : str) -> List:
     conn = get_db_connection()
