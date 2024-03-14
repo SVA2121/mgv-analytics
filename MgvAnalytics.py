@@ -2,15 +2,23 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import os
 #from web3 import Web3 
 from datetime import datetime, timedelta
 
-
-
-
-from database_connection import execute_query_from_file, get_db_connection
-
 st.set_page_config(layout="wide")
+CONN = st.connection("postgresql", type="sql")
+#####################
+# Helper Functions
+####################
+def execute_query_from_file(filename: str) -> pd.DataFrame:
+    query_file = os.path.join('queries', filename)
+    with open(query_file, 'r') as f:
+        query_str = f.read()
+    return CONN.query(query_str)
+    
+#from database_connection import execute_query_from_file, get_db_connection
+
 
 #blast =  Web3(Web3.HTTPProvider('https://rpc.blast.io'))
 # Get current time

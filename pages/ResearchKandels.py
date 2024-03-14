@@ -7,7 +7,15 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import json
 
-from database_connection import execute_query_from_file
+CONN = st.connection("postgresql", type="sql")
+#####################
+# Helper Functions
+####################
+def execute_query_from_file(filename: str) -> pd.DataFrame:
+    query_file = os.path.join('queries', filename)
+    with open(query_file, 'r') as f:
+        query_str = f.read()
+    return CONN.query(query_str)
 
 #blast =  Web3(Web3.HTTPProvider('https://rpc.blast.io'))
 

@@ -1,2 +1,4 @@
 .env-analytics
 launch.json
+.streamlit
+__pycache__
