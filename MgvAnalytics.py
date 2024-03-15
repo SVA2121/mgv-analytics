@@ -38,7 +38,6 @@ overall.markdown(
 overall.markdown(f"Last updated : {(current_time - timedelta(hours = 1)).strftime('%Y-%m-%d %H:%S CET')}")
 
 ########################################################################
-
 overall.markdown("## User Metrics")
 user_data = execute_query_from_file('distinct_users.sql')
 user_data['total_users'] = user_data.new_users.cumsum()
@@ -65,6 +64,10 @@ overall.plotly_chart(fig_users, use_container_width= True)
 
 #################################
 overall.markdown("## Volume Metrics")
+mkts = ["WETHUSDB", "PUNKS20WETH", "PUNKS40WETH"]
+overall.multiselect("Market", options = mkts, default = mkts)
+
+
 
 volume = execute_query_from_file('quote_volume.sql')
 volume.index = volume.creation_date

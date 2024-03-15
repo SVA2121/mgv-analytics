@@ -9,6 +9,9 @@ LEFT JOIN sgd77.market mkt
 	ON off.market = mkt.id
 LEFT JOIN sgd77.token tkn
 	ON mkt.outbound_tkn = tkn.id
+LEFT JOIN public.market_mapping mkt_map
+	ON mkt.id = mkt_map.id
 WHERE TRUE
 	AND UPPER(mkt.block_range) IS NULL
-  AND off.gives > 0
+	AND off.gives > 0
+	AND mkt_map.name NOT IN ('PUNKS20WETH', 'PUNKS40WETH')

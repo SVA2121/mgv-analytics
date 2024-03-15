@@ -11,10 +11,12 @@ CONN = st.connection("postgresql", type="sql")
 #####################
 # Helper Functions
 ####################
-def execute_query_from_file(filename: str) -> pd.DataFrame:
+def execute_query_from_file(filename: str, kwargs = None) -> pd.DataFrame:
     query_file = os.path.join('queries', filename)
     with open(query_file, 'r') as f:
         query_str = f.read()
+        if kwargs:
+            query_str = query_str.format(**{key: f"'{value}'" for key, value in kwargs.items()})
     return CONN.query(query_str)
 
 #blast =  Web3(Web3.HTTPProvider('https://rpc.blast.io'))
@@ -110,4 +112,21 @@ overall.plotly_chart(fig_vol, use_container_width= True)
 
 
 by_instance.markdown("## Deep Dive")
+
+by_instance.markdown("#### Address")
+wallet = by_instance.selectbox(label= "Choose a user address", options = ["4716accb346ddedcda859db0101a0e74bb686700"])
+
+by_instance.markdown("#### Instances")
+research_kandels = execute_query_from_file('research_kandels.sql', {'wallet' : wallet})
+by_instance.dataframe(research_kandels)
+
+instance = by_instance.selectbox(label="Select an instance for details",
+                      options = research_kandels.instance_address)
+
+by_instance.markdown("#### Resets")
+resets = execute_query_from_file('kandel_instance_resets.sql', {'instance' : instance})
+by_instance.dataframe(resets)
+
+reset_id = by_instance.selectbox(label="Select a reset vid", options = resets.reset_id.unique())
+
 
