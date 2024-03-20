@@ -127,6 +127,6 @@ by_instance.markdown("#### Resets")
 resets = execute_query_from_file('kandel_instance_resets.sql', {'instance' : instance})
 by_instance.dataframe(resets)
 
-reset_id = by_instance.selectbox(label="Select a reset vid", options = resets.reset_id.unique())
+reset_id = by_instance.selectbox(label="Select a reset id", options = resets.reset_id.unique())
 
 
