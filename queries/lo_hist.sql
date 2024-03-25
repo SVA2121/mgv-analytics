@@ -4,10 +4,10 @@ SELECT
       THEN gives / POW(10, tkn.decimals)
       ELSE gives * POW(1.0001, off.tick) / POW(10, tkn.decimals)
    END AS offered_volume
-FROM SGD78.offer off
-LEFT JOIN SGD78.market mkt
+FROM sgd79.offer off
+LEFT JOIN sgd79.market mkt
 	ON off.market = mkt.id
-LEFT JOIN SGD78.token tkn
+LEFT JOIN sgd79.token tkn
 	ON mkt.outbound_tkn = tkn.id
 LEFT JOIN public.market_mapping mkt_map
 	ON mkt.id = mkt_map.id

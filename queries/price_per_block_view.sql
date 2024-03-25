@@ -1,5 +1,15 @@
-  SELECT
-      creation_date
+CREATE VIEW price_per_block AS 
+WITH RECURSIVE block_series AS (
+    SELECT MIN(LOWER(block_range)) AS block
+    FROM sgd79.order
+    UNION ALL
+    SELECT block + 1
+    FROM block_series
+    WHERE block < (SELECT MAX(LOWER(block_range)) FROM sgd79.order)
+)
+, prices AS (
+  SELECT DISTINCT
+      LOWER(o.block_range) AS block
       , CASE 
           WHEN out_token.symbol = 'USDB' AND in_token.symbol = 'WETH'
             AND taker_gave > 0 AND taker_got > 0
@@ -33,4 +43,23 @@
      LEFT JOIN sgd79.token AS in_token
       ON market.inbound_tkn = in_token.id
     WHERE NOT (taker_gave = 0 AND taker_got = 0)
-    ORDER BY creation_date ASC
+    --ORDER BY block_range ASC
+)
+
+SELECT
+	block_series.block
+  , prices.weth_usdb
+  , prices.punks20weth
+  , prices.punks40weth
+FROM block_series
+LEFT JOIN prices
+	ON block_series.block = prices.block
+ORDER BY 1 ASC
+
+
+
+
+
+
+
+
