@@ -16,10 +16,10 @@ WITH users AS (
   	END AS category
   
 
-  FROM sgd82.account acc
-  LEFT JOIN sgd82.order ord
+  FROM sgd83.account acc
+  LEFT JOIN sgd83.order ord
     ON acc.address = ord.taker
-  LEFT JOIN sgd82.offer off
+  LEFT JOIN sgd83.offer off
     ON acc.address = off.maker
       OR acc.address = off.owner
   WHERE TRUE

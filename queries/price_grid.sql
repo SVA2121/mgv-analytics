@@ -7,12 +7,12 @@ SELECT
       THEN 1 / POW(1.0001, off.tick)
     END, 4) AS price
 
-FROM sgd82.offer off
-LEFT JOIN sgd82.market mkt
+FROM sgd83.offer off
+LEFT JOIN sgd83.market mkt
 	ON off.market = mkt.id
-LEFT JOIN sgd82.token out_tkn
+LEFT JOIN sgd83.token out_tkn
 	ON mkt.outbound_tkn = out_tkn.id
-LEFT JOIN sgd82.token in_tkn
+LEFT JOIN sgd83.token in_tkn
 	ON mkt.inbound_tkn = in_tkn.id
 WHERE TRUE
     AND UPPER(mkt.block_range) IS NULL

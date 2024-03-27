@@ -5,10 +5,10 @@ SELECT
         WHEN tkn.symbol = 'WETH'
         THEN taker.maker_got / taker.maker_gave
     END AS price
-FROM sgd82.offer_filled taker
-LEFT JOIN sgd82.market mkt
+FROM sgd83.offer_filled taker
+LEFT JOIN sgd83.market mkt
 	ON mkt.id = taker.market
-LEFT JOIN sgd82.token tkn
+LEFT JOIN sgd83.token tkn
 	ON mkt.outbound_tkn = tkn.id
 WHERE TRUE
     AND LOWER(taker.block_range) <= {block}
