@@ -1,11 +1,11 @@
 CREATE VIEW price_per_block AS 
 WITH RECURSIVE block_series AS (
     SELECT MIN(LOWER(block_range)) AS block
-    FROM sgd79.order
+    FROM sgd82.order
     UNION ALL
     SELECT block + 1
     FROM block_series
-    WHERE block < (SELECT MAX(LOWER(block_range)) FROM sgd79.order)
+    WHERE block < (SELECT MAX(LOWER(block_range)) FROM sgd82.order)
 )
 , prices AS (
   SELECT DISTINCT
@@ -35,12 +35,12 @@ WITH RECURSIVE block_series AS (
           THEN ROUND((taker_gave / POW(10, in_token.decimals)) / (taker_got / POW(10, out_token.decimals)), 3)
        END AS punks40weth
 
-    FROM sgd79.order AS o
-    LEFT JOIN sgd79.market AS market
+    FROM sgd82.order AS o
+    LEFT JOIN sgd82.market AS market
         ON o.market = market.id
-    LEFT JOIN sgd79.token AS out_token
+    LEFT JOIN sgd82.token AS out_token
       ON market.outbound_tkn = out_token.id
-     LEFT JOIN sgd79.token AS in_token
+     LEFT JOIN sgd82.token AS in_token
       ON market.inbound_tkn = in_token.id
     WHERE NOT (taker_gave = 0 AND taker_got = 0)
     --ORDER BY block_range ASC

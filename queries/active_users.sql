@@ -2,13 +2,13 @@ WITH active_users AS(
   SELECT DISTINCT
 	    CAST(TO_TIMESTAMP(creation_date) AS DATE) AS creation_date
   	  , maker AS user
-  FROM sgd79.offer
+  FROM sgd82.offer
   WHERE 
   UNION ALL
   SELECT DISTINCT
   	CAST(TO_TIMESTAMP(creation_date) AS DATE) AS creation_date
     , taker AS user
-  FROM sgd79.order
+  FROM sgd82.order
   ORDER BY 2
 )
 SELECT 

@@ -11,10 +11,10 @@ WITH exits AS (
     --, ROUND(kandel.deposited_base / POW(10, tkn_base.decimals), 4) AS deposited_base
     --, tkn_quote.symbol AS quote_token
     --, ROUND(kandel.deposited_quote / POW(10, tkn_quote.decimals), 4) AS deposited_quote
-  FROM sgd79.kandel_populate_retract kandel
-  LEFT JOIN sgd79.kandel_deposit_withdraw kpw
+  FROM sgd82.kandel_populate_retract kandel
+  LEFT JOIN sgd82.kandel_deposit_withdraw kpw
     ON LOWER(kpw.block_range) = LOWER(kandel.block_range)
-  LEFT JOIN sgd79.token tkn
+  LEFT JOIN sgd82.token tkn
     ON tkn.id = kpw.token--
   WHERE TRUE
     AND UPPER(tkn.block_range) IS NULL
@@ -37,10 +37,10 @@ SELECT
   --, ROUND(kandel.deposited_base / POW(10, tkn_base.decimals), 4) AS deposited_base
   --, tkn_quote.symbol AS quote_token
   --, ROUND(kandel.deposited_quote / POW(10, tkn_quote.decimals), 4) AS deposited_quote
-FROM sgd79.kandel_populate_retract kandel
-LEFT JOIN sgd79.kandel_deposit_withdraw kpw
+FROM sgd82.kandel_populate_retract kandel
+LEFT JOIN sgd82.kandel_deposit_withdraw kpw
 	ON LOWER(kpw.block_range) = LOWER(kandel.block_range)
-LEFT JOIN sgd79.token tkn
+LEFT JOIN sgd82.token tkn
 	ON tkn.id = kpw.token--
 LEFT JOIN exits
 	ON exits.exit_block >= LOWER(kandel.block_range)
@@ -48,7 +48,7 @@ LEFT JOIN exits
     AND tkn.name = exits.tkn_name
     AND NOT EXISTS (
         SELECT 1
-        FROM sgd79.kandel_populate_retract AS next_non_exit 
+        FROM sgd82.kandel_populate_retract AS next_non_exit 
         WHERE next_non_exit.kandel = kandel.kandel 
             AND LOWER(next_non_exit.block_range) > LOWER(kandel.block_range)
             AND LOWER(next_non_exit.block_range) < exits.exit_block 

@@ -4,7 +4,7 @@ import os
 import plotly.express as px
 import plotly.graph_objects as go
 #from web3 import Web3 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import numpy as np
 
@@ -115,7 +115,9 @@ overall.plotly_chart(fig_vol, use_container_width= True)
 by_instance.markdown("## Deep Dive")
 
 by_instance.markdown("#### Address")
-wallet = by_instance.selectbox(label= "Choose a user address", options = ["4716accb346ddedcda859db0101a0e74bb686700"])
+wallet = by_instance.selectbox(label= "Choose a user address",
+                            options = ["4716accb346ddedcda859db0101a0e74bb686700",
+                                       "f6681cb5f5a5804b159eb4fdaae222286c61f6ff"])
 
 by_instance.markdown("#### Instances")
 research_kandels = execute_query_from_file('research_kandels.sql', {'wallet' : wallet})
@@ -135,7 +137,11 @@ is_live_version = reset_id == resets.reset_id.max()
 instance = resets[resets.reset_id == reset_id]
 
 if not is_live_version:
-
+    #last_block = execute_query_from_file('max_block.sql', {}).iloc[0, 0]
+    #instance['exit_block'] = last_block
+    #instance['exit_date'] = pd.to_datetime(datetime.now(timezone.utc))
+    #instance['withdrawn_amount'] = 1000
+    
     by_instance.markdown("## Parameters")
     price_at_start = execute_query_from_file('get_last_price.sql',
                                             {'block' : int(instance.reset_block.iloc[0])})
@@ -145,8 +151,8 @@ if not is_live_version:
     price_at_end = float(price_at_end.iloc[0])
 
     col1, col2 = by_instance.columns(2)
-    col1.metric("Reset Date", pd.to_datetime(instance.reset_date.min()).strftime("%Y-%M-%d : %HH:%MM"))
-    col2.metric("Exit Date", pd.to_datetime(instance.exit_date.max()).strftime("%Y-%M-%d : %HH:%MM"))
+    col1.metric("Reset Date", pd.to_datetime(instance.reset_date.min()).strftime("%Y-%m-%d : %HH:%MM"))
+    col2.metric("Exit Date", pd.to_datetime(instance.exit_date.max()).strftime("%Y-%m-%d : %HH:%MM"))
     instance_duration = (instance.exit_date.max() - instance.reset_date.min()).total_seconds() / 60 / 1440
     col1.metric("Kandel Duration (in days)", "{:,.2f}".format(instance_duration))
     col2.metric('', None)
@@ -161,7 +167,7 @@ if not is_live_version:
 
     price_grid = execute_query_from_file('price_grid.sql',
                         {'instance' : instance.instance_address.iloc[0],
-                          'block' : instance.reset_block.iloc[0]})
+                            'block' : instance.reset_block.iloc[0]})
     gridstep = ((price_grid.price - price_grid.price.shift()) / price_grid.price.shift()).mean()
     col1params, col2params, col3params, col4params = by_instance.columns(4)
     col1params.metric("N Points", len(price_grid))
@@ -169,31 +175,42 @@ if not is_live_version:
     col3params.metric("Max Price", price_grid.price.max())
     col4params.metric("GridStep in bps", round(gridstep * 10000, 2))
 
-    
+
 
     by_instance.markdown("## PNL")
     col1pnl, col2pnl, col3pnl = by_instance.columns(3)
-    
+
     initial_balance = float(instance[instance.tkn == 'USDB'].deposited_amount.iloc[0]) \
                         + float(instance[instance.tkn == 'WETH'].deposited_amount.iloc[0]) * price_at_start 
     end_balance = float(instance[instance.tkn == 'USDB'].withdrawn_amount.iloc[0]) \
-                        + float(instance[instance.tkn == 'WETH'].withdrawn_amount.iloc[0]) * price_at_end 
+                        + float(instance[instance.tkn == 'WETH'].withdrawn_amount.iloc[0]) * price_at_end
+    end_balance_iso =  float(instance[instance.tkn == 'USDB'].withdrawn_amount.iloc[0]) \
+                        + float(instance[instance.tkn == 'WETH'].withdrawn_amount.iloc[0]) * price_at_start
+
+    pnl = end_balance - initial_balance
+    fees = end_balance_iso - initial_balance
+    impermanent_loss = pnl - fees
+
     col1pnl.metric("Initial MtM USDB",
                 "{:,.0f}".format(initial_balance))
     col2pnl.metric("Final Mtm USDB",
                 "{:,.0f}".format(end_balance))
-    pnl = end_balance - initial_balance
     col3pnl.metric("PNL USDB", "{:,.0f}".format(pnl))
+
     col1pnl.metric("Total Return Rate (%)", "{:,.2f}".format(100 * pnl / initial_balance ))
     col2pnl.metric("Daily Return Rate (%)", "{:,.2f}".format(100 * pnl / initial_balance / np.sqrt(instance_duration)))
     col3pnl.metric("APY (%)", "{:,.2f}".format(100 * pnl / initial_balance / np.sqrt(instance_duration) * np.sqrt(365)))
- 
+
+    col1pnl.metric("Fees Generated (USDB)",
+                "{:,.2f}".format(fees))
+    col2pnl.metric("Impermanent Loss",
+                "{:,.2f}".format(impermanent_loss))
 
     by_instance.markdown("## Volume")
     transactions = execute_query_from_file('instance_transactions.sql',
                         {'instance' : instance.instance_address.iloc[0],
-                          'start_block' : int(instance.reset_block.iloc[0]),
-                          'end_block' : int(instance.exit_block.iloc[0])})
+                            'start_block' : int(instance.reset_block.iloc[0]),
+                            'end_block' : int(instance.exit_block.iloc[0])})
     col1vol, col2vol, col3vol, col4vol = by_instance.columns(4)
     col1vol.metric("N Transactions", len(transactions))
     col2vol.metric("Total Volume USDB", "{:,.0f}".format(transactions.volume_traded.sum()))

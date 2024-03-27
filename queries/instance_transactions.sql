@@ -15,16 +15,16 @@ SELECT
   	WHEN out_tkn.symbol = 'WETH'
     THEN SUM(maker_got) / POW(10, in_tkn.decimals)
     ELSE SUM(maker_gave) / POW(10, out_tkn.decimals) END AS volume_traded
-FROM sgd79.offer_filled take
-LEFT JOIN sgd79.offer make
+FROM sgd82.offer_filled take
+LEFT JOIN sgd82.offer make
 	ON take.offer = make.id
 	AND LOWER(take.block_range) >= LOWER(make.block_range)
   AND LOWER(take.block_range) < UPPER(make.block_range)
-LEFT JOIN sgd79.market mkt
+LEFT JOIN sgd82.market mkt
 	ON make.market = mkt.id
-LEFT JOIN sgd79.token out_tkn
+LEFT JOIN sgd82.token out_tkn
 	ON mkt.outbound_tkn = out_tkn.id
-LEFT JOIN sgd79.token in_tkn
+LEFT JOIN sgd82.token in_tkn
 	ON mkt.inbound_tkn = in_tkn.id
 WHERE TRUE
 	AND UPPER(mkt.block_range) IS NOT NULL
