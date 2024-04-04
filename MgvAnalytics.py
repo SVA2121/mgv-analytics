@@ -72,7 +72,7 @@ overall.plotly_chart(fig_vol, use_container_width= True)
 
 
 # Total volume
-total_volume = volume.groupby('date')['volume_usdb'].sum().cumsum().to_frame('volume_usdb')
+total_volume = filtered_volume.groupby('date')['volume_usdb'].sum().cumsum().to_frame('volume_usdb')
 fig_vol_total = go.Figure()
 fig_vol_total.add_trace(go.Scatter(x=total_volume.index, y=total_volume.volume_usdb, name='Volume'))
 # Update layout
