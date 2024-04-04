@@ -11,6 +11,7 @@ CONN = st.connection("postgresql", type="sql")
 #####################
 # Helper Functions
 ####################
+@st.cache_data
 def execute_query_from_file(filename: str) -> pd.DataFrame:
     query_file = os.path.join('queries', filename)
     with open(query_file, 'r') as f:
@@ -29,6 +30,7 @@ current_time = datetime.now()
 #LAST_24H_BLOCK_NUMBER = LATEST_BLOCK_NUMBER - 30 * 60 * 24
 
 
+
 overall, maker, taker = st.tabs(["Overall Analytics", "Maker Anlaytics", "Taker Analytics"])
 
 overall.markdown(
@@ -37,6 +39,48 @@ overall.markdown(
 )
 overall.markdown(f"Last updated : {(current_time - timedelta(hours = 1)).strftime('%Y-%m-%d %H:%S CET')}")
 
+########################################################################
+overall.markdown("## Volume Metrics")
+
+volume = execute_query_from_file('volume_usdb.sql')
+
+mkts = ["WETHUSDB", "PUNKS20WETH", "PUNKS40WETH"]
+selected_mkts = overall.multiselect("Market", options = mkts, default = mkts)
+
+filtered_volume = volume[volume.mkt_name.isin(selected_mkts)]
+
+filtered_volume.index = filtered_volume.date
+filtered_volume.drop('date', axis = 1, inplace = True)
+filtered_volume['total_volume'] = filtered_volume.volume_usdb.cumsum()
+
+
+col1vol, col2vol, col3vol, col4vol = overall.columns(4)
+col1vol.metric("Total Volume USDB", "{:,.0f}".format(filtered_volume.total_volume.iloc[-1]))
+col2vol.metric("Total Volume USDB (24H)", "{:,.0f}".format(filtered_volume.volume_usdb_24h.sum()))
+col3vol.metric("Total # Transactions", "{:,.0f}".format(filtered_volume.n_transactions.sum()))
+col4vol.metric("Total # Transactions (24H)", "{:,.0f}".format(filtered_volume.n_transactions_24h.sum()))
+
+
+fig_vol = go.Figure()
+fig_vol.add_trace(go.Bar(x=filtered_volume.index, y=filtered_volume.volume_usdb, name='Volume'))
+# Update layout
+fig_vol.update_layout(title='Volume by Day',
+                        yaxis_title='Volume in USDB',
+                        xaxis=dict(title='Day'))
+
+overall.plotly_chart(fig_vol, use_container_width= True)
+
+
+# Total volume
+total_volume = volume.groupby('date')['volume_usdb'].sum().cumsum().to_frame('volume_usdb')
+fig_vol_total = go.Figure()
+fig_vol_total.add_trace(go.Scatter(x=total_volume.index, y=total_volume.volume_usdb, name='Volume'))
+# Update layout
+fig_vol_total.update_layout(title='Total Cumulated Volume',
+                        yaxis_title='Volume in USDB',
+                        xaxis=dict(title='Day'))
+
+overall.plotly_chart(fig_vol_total, use_container_width= True)
 ########################################################################
 overall.markdown("## User Metrics")
 user_data = execute_query_from_file('distinct_users.sql')
@@ -63,36 +107,7 @@ fig_users.update_layout(title='New Users by Day',
 overall.plotly_chart(fig_users, use_container_width= True)
 
 #################################
-overall.markdown("## Volume Metrics")
-mkts = ["WETHUSDB", "PUNKS20WETH", "PUNKS40WETH"]
-overall.multiselect("Market", options = mkts, default = mkts)
 
-
-
-volume = execute_query_from_file('quote_volume.sql')
-volume.index = volume.creation_date
-volume.drop('creation_date', axis = 1, inplace = True)
-volume['total_volume'] = volume.quote_volume.cumsum()
-
-
-col1vol, col2vol, col3vol, col4vol = overall.columns(4)
-col1vol.metric("Total Volume USDB", "{:,.0f}".format(volume.total_volume.iloc[-1]))
-col2vol.metric("Total Volume USDB (24H)", "{:,.0f}".format(volume.last_24h_volume.sum()))
-col3vol.metric("Total # Transactions", "{:,.0f}".format(volume.n_transactions.sum()))
-col4vol.metric("Total # Transactions (24H)", "{:,.0f}".format(volume.last_24h_transactions.sum()))
-# Plot stacked area chart
-fig_vol = go.Figure()
-
-fig_vol.add_trace(go.Bar(x=volume.index, y=volume.quote_volume, name='Volume'))
-fig_vol.add_trace(go.Scatter(x=volume.index, y=volume.total_volume,
-                                 mode='lines', name = 'Total Volume'))
-
-# Update layout
-fig_vol.update_layout(title='Volume by Day',
-                        yaxis_title='Volume in USDB',
-                        xaxis=dict(title='Day'))
-
-overall.plotly_chart(fig_vol, use_container_width= True)
 
 
 #########################
