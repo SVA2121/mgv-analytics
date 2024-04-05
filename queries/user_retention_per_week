@@ -1,0 +1,74 @@
+WITH weekly_activity AS (
+    SELECT
+        user_id,
+        DATE_TRUNC('week', TO_TIMESTAMP(creation_date)) AS activity_week
+    FROM (
+        SELECT
+            maker AS user_id,
+            creation_date
+        FROM
+            sgd83.offer
+        UNION ALL
+        SELECT
+            taker AS user_id,
+            creation_date
+        FROM
+            sgd83.offer_filled
+    ) combined_activity
+),
+user_first_activity AS (
+    SELECT
+        user_id,
+        MIN(activity_week) AS first_activity_week
+    FROM
+        weekly_activity
+    GROUP BY
+        user_id
+),
+weekly_user_status AS (
+    SELECT
+        wa.user_id,
+        wa.activity_week,
+        CASE 
+            WHEN wa.activity_week = ufa.first_activity_week THEN 'New'
+            ELSE 'Recurring'
+        END AS user_status
+    FROM
+        weekly_activity wa
+    JOIN
+        user_first_activity ufa ON wa.user_id = ufa.user_id
+),
+aggregated_stats AS (
+    SELECT
+        activity_week,
+        COUNT(DISTINCT user_id) AS active_users,
+        COUNT(DISTINCT CASE WHEN user_status = 'New' THEN user_id END) AS new_users,
+        COUNT(DISTINCT CASE WHEN user_status = 'Recurring' THEN user_id END) AS recurring_users
+    FROM
+        weekly_user_status
+    GROUP BY
+        activity_week
+),
+previous_week_activity AS (
+    SELECT
+        as1.activity_week,
+        as1.active_users,
+        as1.new_users,
+        as1.recurring_users,
+        LAG(as1.active_users) OVER (ORDER BY as1.activity_week) AS prev_week_active_users
+    FROM
+        aggregated_stats as1
+)
+SELECT
+    activity_week,
+    active_users,
+    new_users,
+    ROUND((new_users::DECIMAL / active_users) * 100, 2) AS pct_new_users,
+    recurring_users,
+    ROUND((recurring_users::DECIMAL / active_users) * 100, 2) AS pct_recurring_users,
+    COALESCE(prev_week_active_users - recurring_users, 0) AS stopped_trading,
+    ROUND((COALESCE(prev_week_active_users - recurring_users, 0)::DECIMAL / COALESCE(prev_week_active_users, 1)) * 100, 2) AS pct_stopped_trading
+FROM
+    previous_week_activity
+ORDER BY
+    activity_week;
