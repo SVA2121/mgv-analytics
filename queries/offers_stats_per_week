@@ -1,0 +1,56 @@
+WITH ranked_updates AS (
+    SELECT
+        id,
+        DATE_TRUNC('week', TO_TIMESTAMP(creation_date)) AS week,
+        is_open,
+        is_failed,
+        is_filled,
+        is_retracted,
+        latest_update_date,
+        ROW_NUMBER() OVER (PARTITION BY id ORDER BY latest_update_date DESC) AS rn,
+        COUNT(*) OVER (PARTITION BY id) AS status_change_count -- Count the number of rows per id as a proxy for status changes
+    FROM
+        sgd83.offer
+),
+latest_status AS (
+    SELECT
+        week,
+        is_open,
+        is_failed,
+        is_filled,
+        is_retracted,
+        status_change_count
+    FROM
+        ranked_updates
+    WHERE
+        rn = 1
+),
+weekly_status_counts AS (
+    SELECT
+        week,
+        COUNT(*) AS total_transactions, -- Total unique transactions per week
+        SUM(status_change_count) AS total_status_changes, -- Total status changes
+        COUNT(*) FILTER (WHERE is_open = TRUE) AS open_count,
+        COUNT(*) FILTER (WHERE is_failed = TRUE) AS failed_count,
+        COUNT(*) FILTER (WHERE is_filled = TRUE) AS filled_count,
+        COUNT(*) FILTER (WHERE is_retracted = TRUE) AS retracted_count
+    FROM
+        latest_status
+    GROUP BY
+        week
+),
+weekly_status_percentages AS (
+    SELECT
+        week,
+        total_transactions,
+        total_status_changes,
+        (open_count * 100.0 / total_transactions) AS open_percentage,
+        (failed_count * 100.0 / total_transactions) AS failed_percentage,
+        (filled_count * 100.0 / total_transactions) AS filled_percentage,
+        (retracted_count * 100.0 / total_transactions) AS retracted_percentage
+    FROM
+        weekly_status_counts
+)
+
+SELECT * FROM weekly_status_percentages
+ORDER BY week;
