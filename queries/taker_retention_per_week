@@ -1,0 +1,66 @@
+WITH weekly_taker_activity AS (
+    SELECT
+        taker AS taker_id,
+        DATE_TRUNC('week', TO_TIMESTAMP(creation_date)) AS activity_week
+    FROM
+        sgd83.offer_filled
+),
+taker_first_activity AS (
+    SELECT
+        taker_id,
+        MIN(activity_week) AS first_activity_week
+    FROM
+        weekly_taker_activity
+    GROUP BY
+        taker_id
+),
+weekly_taker_status AS (
+    SELECT
+        wta.taker_id,
+        wta.activity_week,
+        CASE 
+            WHEN wta.activity_week = tfa.first_activity_week THEN 'New'
+            ELSE 'Recurring'
+        END AS taker_status
+    FROM
+        weekly_taker_activity wta
+    JOIN
+        taker_first_activity tfa ON wta.taker_id = tfa.taker_id
+),
+aggregated_taker_stats AS (
+    SELECT
+        activity_week,
+        COUNT(DISTINCT taker_id) AS active_takers,
+        COUNT(DISTINCT CASE WHEN taker_status = 'New' THEN taker_id END) AS new_takers,
+        COUNT(DISTINCT CASE WHEN taker_status = 'Recurring' THEN taker_id END) AS recurring_takers
+    FROM
+        weekly_taker_status
+    GROUP BY
+        activity_week
+),
+stats_with_previous_week AS (
+    SELECT
+        ats.*,
+        LAG(ats.active_takers) OVER (ORDER BY ats.activity_week) AS prev_week_active_takers
+    FROM
+        aggregated_taker_stats ats
+)
+SELECT
+    activity_week,
+    active_takers,
+    new_takers,
+    ROUND((new_takers::DECIMAL / active_takers) * 100, 2) AS pct_new_takers,
+    recurring_takers,
+    ROUND((recurring_takers::DECIMAL / active_takers) * 100, 2) AS pct_recurring_takers,
+    CASE 
+        WHEN activity_week = (SELECT MIN(activity_week) FROM stats_with_previous_week) THEN 0
+        ELSE GREATEST(prev_week_active_takers - recurring_takers, 0) 
+    END AS stopped_trading,
+    CASE 
+        WHEN activity_week = (SELECT MIN(activity_week) FROM stats_with_previous_week) THEN 0
+        ELSE ROUND(((GREATEST(prev_week_active_takers - recurring_takers, 0))::DECIMAL / GREATEST(prev_week_active_takers, 1)) * 100, 2) 
+    END AS pct_stopped_trading
+FROM
+    stats_with_previous_week
+ORDER BY
+    activity_week;
