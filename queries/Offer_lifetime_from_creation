@@ -1,0 +1,42 @@
+WITH offer_lifetimes AS (
+    SELECT
+        id,
+        DATE_TRUNC('week', TO_TIMESTAMP(creation_date)) AS creation_week,
+        -- Assuming creation_date and latest_update_date are in UNIX timestamp format for calculating uptime in seconds.
+        -- If an offer is still open, consider 'now' as the latest_update_date for the purpose of uptime calculation.
+        COALESCE(latest_update_date - creation_date, EXTRACT(EPOCH FROM NOW()) - creation_date) AS offer_uptime_seconds,
+        is_open,
+        ROW_NUMBER() OVER (PARTITION BY id ORDER BY COALESCE(latest_update_date, EXTRACT(EPOCH FROM NOW())) DESC) AS rn
+    FROM
+        sgd83.offer
+    -- No filter to include all offers, regardless of their current status
+),
+weekly_uptime_stats AS (
+    SELECT
+        creation_week,
+        COUNT(id) AS number_of_offers_finished, -- Count the number of offers per week
+        SUM(CASE WHEN is_open = TRUE THEN 1 ELSE 0 END) AS open_offers_count, -- Count of offers that are still open
+        AVG(offer_uptime_seconds) AS avg_uptime_seconds,
+        MIN(offer_uptime_seconds) AS min_uptime_seconds,
+        MAX(offer_uptime_seconds) AS max_uptime_seconds,
+        SUM(offer_uptime_seconds) AS total_uptime_seconds
+    FROM
+        offer_lifetimes
+    WHERE
+        rn = 1 -- Ensuring we only consider the latest (or current) status of each offer
+    GROUP BY
+        creation_week
+)
+
+SELECT
+    creation_week,
+    number_of_offers_finished,
+    open_offers_count, -- The newly added column for counting open offers
+    avg_uptime_seconds,
+    min_uptime_seconds,
+    max_uptime_seconds,
+    total_uptime_seconds
+FROM
+    weekly_uptime_stats
+ORDER BY
+    creation_week;
