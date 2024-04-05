@@ -1,0 +1,45 @@
+WITH offer_lifetimes AS (
+    SELECT
+        id,
+        DATE_TRUNC('week', TO_TIMESTAMP(latest_update_date)) AS finished_week,
+        -- Assuming creation_date and latest_update_date are in UNIX timestamp format
+        (latest_update_date - creation_date) AS offer_uptime_seconds,
+        is_open,
+        ROW_NUMBER() OVER (PARTITION BY id ORDER BY latest_update_date DESC) AS rn
+    FROM
+        sgd83.offer
+    WHERE
+        -- Including all offers to ensure open offers are accounted for in the next steps
+        (is_filled = TRUE OR is_failed = TRUE OR is_retracted = TRUE OR is_open = TRUE)
+),
+weekly_uptime_stats AS (
+    SELECT
+        finished_week,
+        COUNT(id) AS total_offers_counted, -- Renamed to more accurately describe the count
+        COUNT(id) FILTER (WHERE is_open = FALSE) AS offers_finished, -- Count of offers no longer open
+        COUNT(id) FILTER (WHERE is_open = TRUE) AS offers_still_open, -- Count of offers still open
+        AVG(offer_uptime_seconds) FILTER (WHERE is_open = FALSE) AS avg_uptime_seconds, -- Average uptime for concluded offers
+        MIN(offer_uptime_seconds) FILTER (WHERE is_open = FALSE) AS min_uptime_seconds, -- Min uptime for concluded offers
+        MAX(offer_uptime_seconds) FILTER (WHERE is_open = FALSE) AS max_uptime_seconds, -- Max uptime for concluded offers
+        SUM(offer_uptime_seconds) FILTER (WHERE is_open = FALSE) AS total_uptime_seconds -- Total uptime for concluded offers
+    FROM
+        offer_lifetimes
+    WHERE
+        rn = 1 -- Only considering the latest status for each offer
+    GROUP BY
+        finished_week
+)
+
+SELECT
+    finished_week,
+    total_offers_counted, -- Reflects both open and non-open (finished) offers
+    offers_finished,
+    offers_still_open,
+    min_uptime_seconds,
+    avg_uptime_seconds,
+    max_uptime_seconds,
+    total_uptime_seconds
+FROM
+    weekly_uptime_stats
+ORDER BY
+    finished_week;
