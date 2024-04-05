@@ -28,7 +28,7 @@ latest_status AS (
 weekly_status_counts AS (
     SELECT
         week,
-        COUNT(*) AS total_transactions, -- Total unique transactions per week
+        COUNT(*) AS total_offers, -- Total unique transactions per week
         SUM(status_change_count) AS total_status_changes, -- Total status changes
         COUNT(*) FILTER (WHERE is_open = TRUE) AS open_count,
         COUNT(*) FILTER (WHERE is_failed = TRUE) AS failed_count,
@@ -42,12 +42,12 @@ weekly_status_counts AS (
 weekly_status_percentages AS (
     SELECT
         week,
-        total_transactions,
+        total_offers,
         total_status_changes,
-        (open_count * 100.0 / total_transactions) AS open_percentage,
-        (failed_count * 100.0 / total_transactions) AS failed_percentage,
-        (filled_count * 100.0 / total_transactions) AS filled_percentage,
-        (retracted_count * 100.0 / total_transactions) AS retracted_percentage
+        (open_count * 100.0 / total_offers) AS open_percentage,
+        (failed_count * 100.0 / total_offers) AS failed_percentage,
+        (filled_count * 100.0 / total_offers) AS filled_percentage,
+        (retracted_count * 100.0 / total_offers) AS retracted_percentage
     FROM
         weekly_status_counts
 )
