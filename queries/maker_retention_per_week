@@ -1,0 +1,66 @@
+WITH weekly_maker_activity AS (
+    SELECT
+        maker AS maker_id,
+        DATE_TRUNC('week', TO_TIMESTAMP(creation_date)) AS activity_week
+    FROM
+        sgd83.offer
+),
+maker_first_activity AS (
+    SELECT
+        maker_id,
+        MIN(activity_week) AS first_activity_week
+    FROM
+        weekly_maker_activity
+    GROUP BY
+        maker_id
+),
+weekly_maker_status AS (
+    SELECT
+        wma.maker_id,
+        wma.activity_week,
+        CASE 
+            WHEN wma.activity_week = mfa.first_activity_week THEN 'New'
+            ELSE 'Recurring'
+        END AS maker_status
+    FROM
+        weekly_maker_activity wma
+    JOIN
+        maker_first_activity mfa ON wma.maker_id = mfa.maker_id
+),
+aggregated_maker_stats AS (
+    SELECT
+        activity_week,
+        COUNT(DISTINCT maker_id) AS active_makers,
+        COUNT(DISTINCT CASE WHEN maker_status = 'New' THEN maker_id END) AS new_makers,
+        COUNT(DISTINCT CASE WHEN maker_status = 'Recurring' THEN maker_id END) AS recurring_makers
+    FROM
+        weekly_maker_status
+    GROUP BY
+        activity_week
+),
+stats_with_previous_week AS (
+    SELECT
+        ams.*,
+        LAG(ams.active_makers) OVER (ORDER BY ams.activity_week) AS prev_week_active_makers
+    FROM
+        aggregated_maker_stats ams
+)
+SELECT
+    activity_week,
+    active_makers,
+    new_makers,
+    ROUND((new_makers::DECIMAL / active_makers) * 100, 2) AS pct_new_makers,
+    recurring_makers,
+    ROUND((recurring_makers::DECIMAL / active_makers) * 100, 2) AS pct_recurring_makers,
+    CASE 
+        WHEN activity_week = (SELECT MIN(activity_week) FROM stats_with_previous_week) THEN 0
+        ELSE GREATEST(prev_week_active_makers - recurring_makers, 0) 
+    END AS stopped_making,
+    CASE 
+        WHEN activity_week = (SELECT MIN(activity_week) FROM stats_with_previous_week) THEN 0
+        ELSE ROUND(((GREATEST(prev_week_active_makers - recurring_makers, 0))::DECIMAL / GREATEST(prev_week_active_makers, 1)) * 100, 2) 
+    END AS pct_stopped_making
+FROM
+    stats_with_previous_week
+ORDER BY
+    activity_week;
