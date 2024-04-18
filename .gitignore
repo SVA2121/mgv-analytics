@@ -4,3 +4,9 @@ launch.json
 __pycache__
 scratchpad.ipynb
 database_connection.py
+sgd83_data.sql
+*.csv
+data/*
+.DS_Store
+*.ipynb
+*.html

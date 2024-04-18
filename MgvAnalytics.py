@@ -8,6 +8,8 @@ from datetime import datetime, timedelta
 
 st.set_page_config(layout="wide")
 CONN = st.connection("postgresql", type="sql")
+
+key_gen = (i for i in range(30))
 #####################
 # Helper Functions
 ####################
@@ -29,9 +31,11 @@ current_time = datetime.now()
 # 2 blocks per second in blast --> 30 * 60 * 24 per day
 #LAST_24H_BLOCK_NUMBER = LATEST_BLOCK_NUMBER - 30 * 60 * 24
 
+#db = execute_query_from_file('detailed_volume.sql')
+db = pd.read_csv('dump_db.csv')
+db.date = pd.to_datetime(db.date)
 
-
-overall, maker, taker = st.tabs(["Overall Analytics", "Maker Anlaytics", "Taker Analytics"])
+overall, deep = st.tabs(["Overall Analytics", "Volume Deep Dive"])
 
 overall.markdown(
     "# 📊 Mangrove Analytics App",
@@ -42,31 +46,47 @@ overall.markdown(f"Last updated : {(current_time - timedelta(hours = 1)).strftim
 ########################################################################
 overall.markdown("## Volume Metrics")
 
-volume = execute_query_from_file('volume_usdb.sql')
-
 mkts = ["WETHUSDB", "PUNKS20WETH", "PUNKS40WETH"]
 selected_mkts = overall.multiselect("Market", options = mkts, default = mkts)
 
-filtered_volume = volume[volume.mkt_name.isin(selected_mkts)]
+agg_option = overall.selectbox(label = 'Aggregate By', options = ['Minute', 'Day', 'Week', 'Month', 'Year'], index = 1)
+
+filtered_volume = db[db.mkt_name.isin(selected_mkts)]
 
 filtered_volume.index = filtered_volume.date
 filtered_volume.drop('date', axis = 1, inplace = True)
-filtered_volume['total_volume'] = filtered_volume.volume_usdb.cumsum()
 
+match agg_option:
+    case 'Minute':
+        agg = 'min'
+    case 'Day':
+        agg = 'D'
+    case 'Week':
+        agg = 'W'
+    case 'Month':
+        agg = 'M'
+    case 'Year':
+        agg = 'YS'
+    
+filtered_transactions = filtered_volume.copy()
+filtered_volume = filtered_volume.resample(agg).sum()
+filtered_transactions = filtered_transactions.resample(agg).count()
+
+filtered_volume['total_volume'] = filtered_volume.volume_usdb.cumsum()
 
 col1vol, col2vol, col3vol, col4vol = overall.columns(4)
 col1vol.metric("Total Volume USDB", "{:,.0f}".format(filtered_volume.total_volume.iloc[-1]))
-col2vol.metric("Total Volume USDB (24H)", "{:,.0f}".format(filtered_volume.volume_usdb_24h.sum()))
-col3vol.metric("Total # Transactions", "{:,.0f}".format(filtered_volume.n_transactions.sum()))
-col4vol.metric("Total # Transactions (24H)", "{:,.0f}".format(filtered_volume.n_transactions_24h.sum()))
+col2vol.metric("Total Volume USDB Last " + agg_option, "{:,.0f}".format(filtered_volume.iloc[-1].volume_usdb.sum()))
+col3vol.metric("Total # Transactions", "{:,.0f}".format(filtered_transactions.volume_usdb.sum()))
+col4vol.metric("Total # Transactions Last " + agg_option, "{:,.0f}".format(filtered_transactions.volume_usdb.iloc[-1]))
 
 
 fig_vol = go.Figure()
 fig_vol.add_trace(go.Bar(x=filtered_volume.index, y=filtered_volume.volume_usdb, name='Volume'))
 # Update layout
-fig_vol.update_layout(title='Volume by Day',
+fig_vol.update_layout(title='Volume by ' + agg_option,
                         yaxis_title='Volume in USDB',
-                        xaxis=dict(title='Day'))
+                        xaxis=dict(title=agg_option))
 
 overall.plotly_chart(fig_vol, use_container_width= True)
 
@@ -78,11 +98,12 @@ fig_vol_total.add_trace(go.Scatter(x=total_volume.index, y=total_volume.volume_u
 # Update layout
 fig_vol_total.update_layout(title='Total Cumulated Volume',
                         yaxis_title='Volume in USDB',
-                        xaxis=dict(title='Day'))
+                        xaxis=dict(title=agg_option))
 
 overall.plotly_chart(fig_vol_total, use_container_width= True)
 ########################################################################
 overall.markdown("## User Metrics")
+_ = """
 user_data = execute_query_from_file('distinct_users.sql')
 user_data['total_users'] = user_data.new_users.cumsum()
 
@@ -105,49 +126,86 @@ fig_users.update_layout(title='New Users by Day',
 
 
 overall.plotly_chart(fig_users, use_container_width= True)
+"""
+#################################
 
 #################################
 
 
 
 #########################
-#      Maker Page
+#      Volume Deep Dive Page
 #########################
+selected_mkt = deep.selectbox("Market", options = mkts, index = 0)
+dd = db[db.mkt_name == selected_mkt]
+col1, col2 = deep.columns(2)
 
-maker.markdown('## Limit Orders Stats')
+start_day = col1.date_input(label = 'Start Time', 
+                            value = datetime.today(),
+                            format='YYYY-MM-DD',
+                            key=next(key_gen))
+start_time = col2.time_input(label='',
+                            value = datetime.now().replace(hour = 0, minute=0, second=0),
+                            step = 60, key = next(key_gen))
+end_day = col1.date_input(label = 'End Time',
+                        value = datetime.today(),
+                        format='YYYY-MM-DD',
+                        key = next(key_gen))
+end_time = col2.time_input(label='', value = "now",
+                           step = 60, key = next(key_gen))
+start = str(start_day) + ' ' + str(start_time)
+end = str(end_day) + ' ' + str(end_time)
 
-los = execute_query_from_file('lo_hist.sql')
+dd = dd[(dd.date >= start) & (db.date <= end)]
 
-maker.dataframe(los.offered_volume.apply(float).describe())
+col1dd, col2dd, col3dd, col4dd = deep.columns(4)
+col1dd.metric("Total Volume USDB", "{:,.0f}".format(dd.volume_usdb.sum()))
+col2dd.metric("Total # Transactions", "{:,.0f}".format(len(dd)))
+col3dd.metric("Total Makers", "{:,.0f}".format(dd.maker.nunique()))
+col4dd.metric("Total Takers", "{:,.0f}".format(dd.taker.nunique()))
 
-lo_hist = px.histogram(los, x='offered_volume', nbins=100)
+deep.download_button(label = 'Click to download transaction data',
+                     file_name=f'{selected_mkt}_transactions_{start}_{end}.csv',
+                     data = dd.to_csv())
 
-# Update layout
-lo_hist.update_layout(
-    title='Histogram',
-    xaxis_title='Offered Volume',
-    yaxis_title='Frequency'
-)
+col_makers, col_takers = deep.columns(2)
+col_makers.markdown("## Top Makers")
+maker_df = dd.groupby('maker')['volume_usdb'].sum().sort_values(ascending=False).to_frame()
+maker_df['pct'] = dd.groupby('maker')['volume_usdb'].sum().sort_values(ascending=False) / dd.volume_usdb.sum()
+maker_df['pct_cumsum'] = maker_df.pct.cumsum()
+maker_df['volume_usdb'] = maker_df['volume_usdb'].to_frame().applymap("{:,.0f}".format)
+maker_df[['pct', 'pct_cumsum']] = maker_df[['pct', 'pct_cumsum']].applymap("{:,.4f}".format)
+col_makers.dataframe(maker_df)
 
-maker.plotly_chart(lo_hist)
 
-#########################
-#      Taker Page
-#########################
+col_takers.markdown("## Top Takers")
+taker_df = dd.groupby('taker')['volume_usdb'].sum().sort_values(ascending=False).to_frame()
+taker_df['pct'] = dd.groupby('taker')['volume_usdb'].sum().sort_values(ascending=False) / dd.volume_usdb.sum()
+taker_df['pct_cumsum'] = taker_df.pct.cumsum()
+taker_df['volume_usdb'] = taker_df['volume_usdb'].to_frame().applymap("{:,.0f}".format)
+taker_df[['pct', 'pct_cumsum']] = taker_df[['pct', 'pct_cumsum']].applymap("{:,.4f}".format)
+col_takers.dataframe(taker_df)
 
-taker.markdown('## Market Orders Stats')
+deep.markdown("## Maker Interactions")
 
-mos = execute_query_from_file('mo_hist.sql')
+maker = deep.text_input(label = 'Input Maker Address', value = maker_df.index[0])
 
-taker.dataframe(mos.taken_volume.apply(float).describe())
+makerdb = dd[dd.maker == maker]
 
-mo_hist = px.histogram(mos, x='taken_volume', nbins=100)
+deep.markdown("#### Top Taker Interactions")
+top_takers = makerdb.groupby('taker')['volume_usdb'].sum().sort_values(ascending=False).to_frame()
+top_takers['pct'] = makerdb.groupby('taker')['volume_usdb'].sum().sort_values(ascending=False) / makerdb.volume_usdb.sum()
+top_takers['pct_cumsum'] = top_takers.pct.cumsum()
+top_takers['volume_usdb'] = top_takers['volume_usdb'].to_frame().applymap("{:,.0f}".format)
+top_takers[['pct', 'pct_cumsum']] = top_takers[['pct', 'pct_cumsum']].applymap("{:,.4f}".format)
+deep.dataframe(top_takers)
 
-# Update layout
-mo_hist.update_layout(
-    title='Histogram',
-    xaxis_title='Market Order Volume',
-    yaxis_title='Frequency'
-)
 
-taker.plotly_chart(mo_hist)
+taker_filter = deep.slider(label = 'Taker Filter', min_value=float(top_takers.pct_cumsum.iloc[0]), max_value=1.0)
+takers = top_takers[pd.to_numeric(top_takers.pct_cumsum) <= float(taker_filter)].index
+
+taker_flow = dd[dd.taker.isin(takers)]
+taker_flow['vol'] = taker_flow[['side', 'volume_usdb']].apply(lambda x: x.volume_usdb if x.side == 'ask' else -x.volume_usdb, axis = 1)
+taker_flow = taker_flow.groupby(['date', 'taker', 'tx_hash'])['vol'].sum().reset_index()
+fig = px.scatter(taker_flow, x='date', y='vol', color='taker', hover_data=['taker'], title='Volume by Taker')
+deep.plotly_chart(fig, use_container_width=True)
