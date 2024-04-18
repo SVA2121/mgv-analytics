@@ -56,17 +56,16 @@ filtered_volume = db[db.mkt_name.isin(selected_mkts)]
 filtered_volume.index = filtered_volume.date
 filtered_volume.drop('date', axis = 1, inplace = True)
 
-match agg_option:
-    case 'Minute':
-        agg = 'min'
-    case 'Day':
-        agg = 'D'
-    case 'Week':
-        agg = 'W'
-    case 'Month':
-        agg = 'M'
-    case 'Year':
-        agg = 'YS'
+if agg_option == 'Mintute':
+    agg = 'min'
+elif agg_option == 'Day':
+    agg = 'D'
+elif agg_option == 'Week':
+    agg = 'W'
+elif agg_option == 'Month':
+    agg = 'M'
+elif agg_option == 'Year':
+    agg = 'YS'
     
 filtered_transactions = filtered_volume.copy()
 filtered_volume = filtered_volume.resample(agg).sum()
