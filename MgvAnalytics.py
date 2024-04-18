@@ -31,9 +31,9 @@ current_time = datetime.now()
 # 2 blocks per second in blast --> 30 * 60 * 24 per day
 #LAST_24H_BLOCK_NUMBER = LATEST_BLOCK_NUMBER - 30 * 60 * 24
 
-#db = execute_query_from_file('detailed_volume.sql')
-db = pd.read_csv('dump_db.csv')
-db.date = pd.to_datetime(db.date)
+db = execute_query_from_file('detailed_volume.sql')
+#db = pd.read_csv('dump_db.csv')
+#db.date = pd.to_datetime(db.date)
 
 overall, deep = st.tabs(["Overall Analytics", "Volume Deep Dive"])
 
