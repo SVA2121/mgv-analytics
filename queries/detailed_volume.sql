@@ -41,7 +41,7 @@
     --AND LOWER(fill.block_range) <= 1891925
     --AND ENCODE(fill.transaction_hash, 'hex') = '00036d34b60b4551385bd8279aef72798cb05f917ede2eaf4ab796284fb9b69d'
 
-  GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+  GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 
 
 
