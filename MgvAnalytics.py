@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import os
@@ -13,7 +14,7 @@ key_gen = (i for i in range(30))
 #####################
 # Helper Functions
 ####################
-@st.cache_data
+@st.cache_data(ttl=600)
 def execute_query_from_file(filename: str) -> pd.DataFrame:
     query_file = os.path.join('queries', filename)
     with open(query_file, 'r') as f:
@@ -157,11 +158,12 @@ end = str(end_day) + ' ' + str(end_time)
 
 dd = dd[(dd.date >= start) & (db.date <= end)]
 
-col1dd, col2dd, col3dd, col4dd = deep.columns(4)
+col1dd, col2dd, col3dd, col4dd, col5dd = deep.columns(5)
 col1dd.metric("Total Volume USDB", "{:,.0f}".format(dd.volume_usdb.sum()))
 col2dd.metric("Total # Transactions", "{:,.0f}".format(len(dd)))
-col3dd.metric("Total Makers", "{:,.0f}".format(dd.maker.nunique()))
-col4dd.metric("Total Takers", "{:,.0f}".format(dd.taker.nunique()))
+col3dd.metric("Total Makers", "{:,.0f}".format(dd.maker_owner.nunique()))
+col4dd.metric("Total Unique Makers", "{:,.0f}".format(dd.maker.nunique()))
+col5dd.metric("Total Takers", "{:,.0f}".format(dd.taker.nunique()))
 
 deep.download_button(label = 'Click to download transaction data',
                      file_name=f'{selected_mkt}_transactions_{start}_{end}.csv',
@@ -185,7 +187,7 @@ taker_df['volume_usdb'] = taker_df['volume_usdb'].to_frame().applymap("{:,.0f}".
 taker_df[['pct', 'pct_cumsum']] = taker_df[['pct', 'pct_cumsum']].applymap("{:,.4f}".format)
 col_takers.dataframe(taker_df)
 
-deep.markdown("## Maker Interactions")
+deep.markdown("## Maker Analytics")
 
 maker = deep.text_input(label = 'Input Maker Address', value = maker_df.index[0])
 
@@ -208,3 +210,32 @@ taker_flow['vol'] = taker_flow[['side', 'volume_usdb']].apply(lambda x: x.volume
 taker_flow = taker_flow.groupby(['date', 'taker', 'tx_hash'])['vol'].sum().reset_index()
 fig = px.scatter(taker_flow, x='date', y='vol', color='taker', hover_data=['taker'], title='Volume by Taker')
 deep.plotly_chart(fig, use_container_width=True)
+
+
+deep.markdown("## Taker Analytics")
+
+deep.markdown("## Taker # Transactions Stats")
+coltak1, coltak2 = deep.columns([0.2, 0.8])
+
+coltak1.dataframe(dd.groupby('taker')['date'].count().describe())
+log_taker_txs = dd.groupby('taker')['date'].count().apply(np.log)
+log_taker_txs_plot = log_taker_txs.hist(backend = 'plotly')
+log_taker_txs_plot.update_layout(title_text="Log count of # Transactions per Taker",
+                                 showlegend = False)
+coltak2.plotly_chart(log_taker_txs_plot, use_container_width = True) 
+
+deep.markdown("## Taker Life Span")
+dd = dd.sort_values('date')
+lifespan = pd.concat([dd.groupby('taker')['date'].first(),
+                      dd.groupby('taker')['date'].last()],
+                      axis = 1)
+lifespan.columns = ['first_t', 'last_t']
+lifespan['ltv'] = lifespan.last_t - lifespan.first_t
+coltak11, coltak22 = deep.columns([0.2, 0.8])
+coltak11.dataframe(lifespan.ltv.describe())
+ltv_chart = lifespan.ltv.apply(lambda x: x.days).hist(backend='plotly')
+ltv_chart.update_layout(title_text = 'Taker Life Span Hist in Days')
+coltak22.plotly_chart(ltv_chart, use_container_width=True)
+
+
+
