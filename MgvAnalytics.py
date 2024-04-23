@@ -102,6 +102,7 @@ fig_vol_total.update_layout(title='Total Cumulated Volume',
 
 overall.plotly_chart(fig_vol_total, use_container_width= True)
 ########################################################################
+_ = """
 overall.markdown("## User Metrics")
 user_data = execute_query_from_file('distinct_users.sql')
 user_data['total_users'] = user_data.new_users.cumsum()
@@ -125,7 +126,7 @@ fig_users.update_layout(title='New Users by Day',
 
 
 overall.plotly_chart(fig_users, use_container_width= True)
-
+"""
 #################################
 
 #################################
