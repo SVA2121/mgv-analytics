@@ -59,6 +59,8 @@ filtered_volume.drop('date', axis = 1, inplace = True)
 
 if agg_option == 'Mintute':
     agg = 'min'
+elif agg_option == 'Hour':
+    agg = 'H'
 elif agg_option == 'Day':
     agg = 'D'
 elif agg_option == 'Week':
