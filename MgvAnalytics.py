@@ -50,7 +50,7 @@ overall.markdown("## Volume Metrics")
 mkts = ["WETHUSDB", "PUNKS20WETH", "PUNKS40WETH"]
 selected_mkts = overall.multiselect("Market", options = mkts, default = mkts)
 
-agg_option = overall.selectbox(label = 'Aggregate By', options = ['Minute', 'Day', 'Week', 'Month', 'Year'], index = 1)
+agg_option = overall.selectbox(label = 'Aggregate By', options = ['Minute', 'Hour', 'Day', 'Week', 'Month', 'Year'], index = 1)
 
 filtered_volume = db[db.mkt_name.isin(selected_mkts)]
 
